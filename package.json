@@ -1,0 +1,31 @@
+{
+  "name": "@imageapiai/mcp",
+  "version": "1.0.0",
+  "description": "Official Model Context Protocol (MCP) Server for ImageAPI AI (imageapiai.com)",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "imageapiai-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "imageapiai",
+    "ai-image-generator",
+    "cursor",
+    "claude-desktop"
+  ],
+  "author": "ImageAPI AI <support@imageapiai.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.0",
+    "imageapiai": "^1.1.0",
+    "zod": "^3.24.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
