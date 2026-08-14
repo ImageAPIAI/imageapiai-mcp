@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 
+/**
+ * Official ImageAPI AI Model Context Protocol (MCP) Server
+ * https://imageapiai.com
+ */
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -8,20 +13,11 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import ImageAPI from 'imageapiai';
 
-const apiKey =
-  process.env.IMAGEAPIAI_API_KEY ||
-  process.env.IMAGEAPI_API_KEY ||
-  process.env.NEXT_PUBLIC_IMAGEAPIAI_API_KEY;
-
-let client = null;
-if (apiKey) {
-  client = new ImageAPI({ apiKey });
-}
-
+// Server instance declaration
 const server = new Server(
   {
     name: '@imageapiai/mcp',
-    version: '1.0.0',
+    version: '1.1.0',
   },
   {
     capabilities: {
@@ -30,6 +26,7 @@ const server = new Server(
   }
 );
 
+// Define tool schemas for AI clients
 const TOOLS = [
   {
     name: 'generate_image',
@@ -58,6 +55,10 @@ const TOOLS = [
           description: 'Inference quality level (Default: medium).',
           default: 'medium',
         },
+        auth_token: {
+          type: 'string',
+          description: 'Optional runtime API key or Bearer token override.',
+        },
       },
       required: ['prompt'],
     },
@@ -65,13 +66,13 @@ const TOOLS = [
   {
     name: 'refine_image',
     description:
-      'Refine or modify an existing generated image for 0 credits (up to 5 free retries per parent prompt ID). Appends prompt modifications to the locked base prompt.',
+      'Refine or modify an existing generated image for 0 credits (up to 5 free retries per parent prompt ID). Appends modifications to the locked base prompt.',
     inputSchema: {
       type: 'object',
       properties: {
         parent_prompt_id: {
           type: 'string',
-          description: 'The prompt_id or generation_id of the original image generation.',
+          description: 'The prompt_id or generation_id of the original base image.',
         },
         prompt_update: {
           type: 'string',
@@ -88,7 +89,11 @@ const TOOLS = [
         quality: {
           type: 'string',
           enum: ['low', 'medium', 'high'],
-          description: 'Optional quality level override.',
+          description: 'Optional quality level override (low, medium, high).',
+        },
+        auth_token: {
+          type: 'string',
+          description: 'Optional runtime API key or Bearer token override.',
         },
       },
       required: ['parent_prompt_id', 'prompt_update'],
@@ -100,7 +105,12 @@ const TOOLS = [
       'Fetch your ImageAPI account profile, credit balance, monthly allowance, and active subscription status.',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        auth_token: {
+          type: 'string',
+          description: 'Optional runtime API key or Bearer token override.',
+        },
+      },
     },
   },
   {
@@ -109,45 +119,52 @@ const TOOLS = [
       'Retrieve a list of all historical AI image generations associated with your ImageAPI account.',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        auth_token: {
+          type: 'string',
+          description: 'Optional runtime API key or Bearer token override.',
+        },
+      },
     },
   },
 ];
 
+// Register tool discovery handler
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return { tools: TOOLS };
 });
 
-function ensureClient() {
-  if (client) return client;
-
-  const currentKey =
+// Helper: resolve API client dynamically per call
+function getClient(overrideToken = null) {
+  const token =
+    overrideToken ||
     process.env.IMAGEAPIAI_API_KEY ||
     process.env.IMAGEAPI_API_KEY ||
     process.env.NEXT_PUBLIC_IMAGEAPIAI_API_KEY;
 
-  if (!currentKey) {
+  if (!token) {
     throw new Error(
-      'IMAGEAPIAI_API_KEY environment variable is missing. Set IMAGEAPIAI_API_KEY in your MCP configuration or environment.'
+      'Missing API key. Set the IMAGEAPIAI_API_KEY environment variable or supply an auth_token parameter.'
     );
   }
 
-  client = new ImageAPI({ apiKey: currentKey });
-  return client;
+  return new ImageAPI({ apiKey: token });
 }
 
+// Tool execution handler
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  const { name, arguments: args = {} } = request.params;
 
   try {
-    const api = ensureClient();
+    const api = getClient(args.auth_token);
 
+    // 1. Tool: generate_image
     if (name === 'generate_image') {
       const { prompt, width, height, quality } = args;
       const res = await api.generate({
         prompt,
-        width: width ? Number(width) : 512,
-        height: height ? Number(height) : 512,
+        width: width && !isNaN(Number(width)) ? Number(width) : 512,
+        height: height && !isNaN(Number(height)) ? Number(height) : 512,
         quality: quality || 'medium',
       });
 
@@ -160,18 +177,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [
           {
             type: 'text',
-            text: `🖼️ **Image Generated Successfully!**\n\n![Generated Image](${imageUrl})\n\n- **Image URL:** ${imageUrl}\n- **Prompt ID:** \`${promptId}\`\n- **Credits Remaining:** ${creditsRemaining}\n- **Free Retries Remaining:** 5\n\n*Tip: You can refine this image for 0 credits by passing prompt_id \`${promptId}\` to the \`refine_image\` tool.*`,
+            text: `🖼️ **Image Generated Successfully!**\n\n![Generated Image](${imageUrl})\n\n- **Image URL:** ${imageUrl}\n- **Prompt ID:** \`${promptId}\`\n- **Credits Remaining:** ${creditsRemaining}\n- **Free Retries Left:** 5\n\n*Tip: Refine this image for 0 credits by passing \`${promptId}\` to the \`refine_image\` tool.*`,
           },
         ],
       };
     }
 
+    // 2. Tool: refine_image
     if (name === 'refine_image') {
       const { parent_prompt_id, prompt_update, width, height, quality } = args;
       const res = await api.refine(parent_prompt_id, prompt_update, {
-        width: width ? Number(width) : undefined,
-        height: height ? Number(height) : undefined,
-        quality,
+        width: width && !isNaN(Number(width)) ? Number(width) : undefined,
+        height: height && !isNaN(Number(height)) ? Number(height) : undefined,
+        quality: quality || undefined,
       });
 
       const data = res.data || res;
@@ -189,6 +207,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    // 3. Tool: get_profile
     if (name === 'get_profile') {
       const res = await api.getProfile();
       const data = res.data || res;
@@ -197,12 +216,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [
           {
             type: 'text',
-            text: `👤 **ImageAPI Account Profile**\n\n- **Email:** ${data.email}\n- **Credit Balance:** ${data.credit_balance ?? data.creditBalance}\n- **Monthly Credit Allowance:** ${data.monthly_credits ?? data.monthlyCredits}\n- **Subscription Status:** ${data.subscription_status ?? data.subscriptionStatus}`,
+            text: `👤 **ImageAPI Account Profile**\n\n- **Email:** ${data.email}\n- **Credit Balance:** ${data.credit_balance ?? data.creditBalance}\n- **Monthly Allowance:** ${data.monthly_credits ?? data.monthlyCredits}\n- **Subscription Status:** ${data.subscription_status ?? data.subscriptionStatus}`,
           },
         ],
       };
     }
 
+    // 4. Tool: get_history
     if (name === 'get_history') {
       const res = await api.getHistory();
       const historyList = res.data || res;
@@ -222,7 +242,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         .slice(0, 10)
         .map(
           (item, idx) =>
-            `${idx + 1}. **ID:** \`${item.generation_id || item.generationId}\` | **Prompt:** "${item.prompt_text || item.original_prompt}"\n   - URL: ${item.r2_image_url || item.image_url}`
+            `${idx + 1}. **ID:** \`${item.generation_id || item.generationId}\` | **Prompt:** "${item.prompt_text || item.original_prompt}"\n   - **URL:** ${item.r2_image_url || item.image_url}`
         )
         .join('\n\n');
 
@@ -250,6 +270,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
+// Start MCP Server over STDIO
 async function runServer() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
