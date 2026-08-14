@@ -14,48 +14,48 @@ Add the following to your claude_desktop_config.json:
 -   Windows: %APPDATA%\Claude\claude_desktop_config.json
 ```
 
-{\
-  "mcpServers": {\
-    "imageapiai": {\
-      "command": "npx",\
-      "args": ["-y", "@imageapiai/mcp"],\
-      "env": {\
-        "IMAGEAPIAI_API_KEY": "sk_live_YOUR_API_KEY_HERE"\
-      }\
-    }\
-  }\
+{
+  "mcpServers": {
+    "imageapiai": {
+      "command": "npx",
+      "args": ["-y", "@imageapiai/mcp"],
+      "env": {
+        "IMAGEAPIAI_API_KEY": "sk_live_YOUR_API_KEY_HERE"
+      }
+    }
+  }
 }
 ```
 ### 2\. Cursor IDE Setup
 Add to your project root under .cursor/mcp.json (or globally in ~/.cursor/mcp.json):
 ```
 
-{\
-  "mcpServers": {\
-    "imageapiai": {\
-      "command": "npx",\
-      "args": ["-y", "@imageapiai/mcp"],\
-      "env": {\
-        "IMAGEAPIAI_API_KEY": "sk_live_YOUR_API_KEY_HERE"\
-      }\
-    }\
-  }\
+{
+  "mcpServers": {
+    "imageapiai": {
+      "command": "npx",
+      "args": ["-y", "@imageapiai/mcp"],
+      "env": {
+        "IMAGEAPIAI_API_KEY": "sk_live_YOUR_API_KEY_HERE"
+      }
+    }
+  }
 }
 ```
 ### 3\. Windsurf Setup
 Add to ~/.codeium/windsurf/mcp_config.json:
 ```
 
-{\
-  "mcpServers": {\
-    "imageapiai": {\
-      "command": "npx",\
-      "args": ["-y", "@imageapiai/mcp"],\
-      "env": {\
-        "IMAGEAPIAI_API_KEY": "sk_live_YOUR_API_KEY_HERE"\
-      }\
-    }\
-  }\
+{
+  "mcpServers": {
+    "imageapiai": {
+      "command": "npx",
+      "args": ["-y", "@imageapiai/mcp"],
+      "env": {
+        "IMAGEAPIAI_API_KEY": "sk_live_YOUR_API_KEY_HERE"
+      }
+    }
+  }
 }
 ```
 🛠️ Available MCP Tools
