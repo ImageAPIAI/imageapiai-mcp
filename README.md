@@ -9,7 +9,7 @@ Official Model Context Protocol (MCP) server for [ImageAPI AI](https://imageapia
 ### 1\. Claude Desktop Setup
 
 Add the following to your claude_desktop_config.json:
-
+```
 -   macOS: ~/Library/Application Support/Claude/claude_desktop_config.json
 
 -   Windows: %APPDATA%\Claude\claude_desktop_config.json
@@ -25,9 +25,9 @@ Add the following to your claude_desktop_config.json:
     }\
   }\
 }
-
+```
 ### 2\. Cursor IDE Setup
-
+```
 Add to your project root under .cursor/mcp.json (or globally in ~/.cursor/mcp.json):
 
 {\
@@ -41,9 +41,9 @@ Add to your project root under .cursor/mcp.json (or globally in ~/.cursor/mcp.js
     }\
   }\
 }
-
+```
 ### 3\. Windsurf Setup
-
+```
 Add to ~/.codeium/windsurf/mcp_config.json:
 
 {\
@@ -57,7 +57,7 @@ Add to ~/.codeium/windsurf/mcp_config.json:
     }\
   }\
 }
-
+```
 🛠️ Available MCP Tools
 -----------------------
 
